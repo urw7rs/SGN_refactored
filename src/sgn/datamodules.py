@@ -8,25 +8,24 @@ from sgn.compat.data import NTUDataLoaders
 class SGNDataModule(pl.LightningDataModule):
     def __init__(
         self,
-        dataset: str = "NTU",
-        bench_type: str = "xsub",
+        name: str = "NTU",
+        cross: str = "sub",
         no_aug: bool = False,
         seq_len: int = 20,
         batch_size: int = 64,
         num_workers: int = 0,
     ):
         super().__init__()
+
         self.batch_size = batch_size
         self.num_workers = num_workers
 
-        if bench_type == "xsub":
+        if cross == "sub":
             case = 0
-        else:
+        elif cross == "view":
             case = 1
 
-        self.loader_kwargs = dict(
-            dataset=dataset, case=case, aug=not no_aug, seg=seq_len
-        )
+        self.loader_kwargs = dict(dataset=name, case=case, aug=not no_aug, seg=seq_len)
 
     def setup(self, stage: Optional[str] = None):
         self.ntu_dataloaders = NTUDataLoaders(**self.loader_kwargs)

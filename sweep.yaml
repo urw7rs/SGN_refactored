@@ -1,0 +1,23 @@
+program: main.py
+method: bayes
+metric:
+  goal: maximize
+  name: val_acc
+parameters:
+  data.batch_size:
+    values:
+    - 8
+    - 16
+    - 32
+    - 64
+    - 128
+    - 256
+    - 512
+command:
+  - ${env}
+  - python
+  - ${program}
+  - fit
+  - --config
+  - config.yaml
+  - ${args}

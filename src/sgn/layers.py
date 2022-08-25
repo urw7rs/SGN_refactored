@@ -120,7 +120,7 @@ class FrameLevelModule(nn.Module):
 
         x = rearrange(z, "n t c -> n c t")
         x = self.tcn1(x)
-        # x = F.dropout(x, 0.2)
+        x = F.dropout(x, 0.2)
         x = self.tcn2(x)
 
         x = reduce(x, "n c t -> n c", "max")  # temporal max pooling

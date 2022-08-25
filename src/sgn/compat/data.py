@@ -6,6 +6,8 @@ import numpy as np
 import h5py
 import os.path as osp
 
+from torch import jit
+
 
 class NTUDataset(Dataset):
     def __init__(self, x, y):
@@ -252,8 +254,8 @@ def turn_two_to_one(seq):
 
 def _rot(rot):
     cos_r, sin_r = rot.cos(), rot.sin()
-    zeros = rot.new(rot.size()[:2] + (1,)).zero_()
-    ones = rot.new(rot.size()[:2] + (1,)).fill_(1)
+    zeros = torch.zeros(rot.size()[:2] + (1,))
+    ones = torch.ones(rot.size()[:2] + (1,))
 
     r1 = torch.stack((ones, zeros, zeros), dim=-1)
     rx2 = torch.stack((zeros, cos_r[:, :, 0:1], sin_r[:, :, 0:1]), dim=-1)
@@ -274,9 +276,10 @@ def _rot(rot):
     return rot
 
 
+@jit.script
 def _transform(x, theta):
     x = x.contiguous().view(x.size()[:2] + (-1, 3))
-    rot = x.new(x.size()[0], 3).uniform_(-theta, theta)
+    rot = x.new_empty(x.size()[0], 3).uniform_(-theta, theta)
     rot = rot.repeat(1, x.size()[1])
     rot = rot.contiguous().view((-1, x.size()[1], 3))
     rot = _rot(rot)

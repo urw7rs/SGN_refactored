@@ -42,9 +42,7 @@ class LitSGN(pl.LightningModule):
 
         preds = logits.argmax(dim=1)
 
-        self.log(
-            "train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
-        )
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         self.metrics["train_acc"](preds, y.int())
         self.log(
             "train_acc",
@@ -52,7 +50,6 @@ class LitSGN(pl.LightningModule):
             on_step=True,
             on_epoch=False,
             prog_bar=True,
-            logger=True,
         )
 
         return loss
@@ -65,18 +62,14 @@ class LitSGN(pl.LightningModule):
 
         preds = logits.argmax(dim=1)
 
-        self.log(
-            "val_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
-        )
+        self.log("val_loss", loss, on_epoch=True, prog_bar=True)
 
         self.metrics["val_acc"](preds, y.int())
         self.log(
             "val_acc",
             self.metrics["val_acc"],
-            on_step=True,
             prog_bar=True,
             on_epoch=True,
-            logger=True,
         )
 
         return loss
@@ -86,19 +79,17 @@ class LitSGN(pl.LightningModule):
 
         logits = self.sgn(x)
 
-        logits = logits.view((-1, x.size(0) // y.size(0), logits.size(1)))
+        logits = logits.view(y.size(0), -1, self.hparams.num_classes)
         logits = logits.mean(1)
 
         loss = F.cross_entropy(logits, y, label_smoothing=0.1)
 
         preds = logits.argmax(dim=1)
 
-        self.log(
-            "test_loss", loss, on_step=True, on_epoch=True, prog_bar=False, logger=True
-        )
+        self.log("test_loss", loss, on_epoch=True)
 
         self.metrics["test_acc"](preds, y.int())
-        self.log("test_acc", self.metrics["test_acc"], on_step=True, on_epoch=True)
+        self.log("test_acc", self.metrics["test_acc"], on_epoch=True)
 
         return loss
 
