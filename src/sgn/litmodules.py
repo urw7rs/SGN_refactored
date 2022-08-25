@@ -105,8 +105,15 @@ class LitSGN(pl.LightningModule):
             "lr_scheduler": MultiStepLR(optimizer, milestones=[60, 90, 110], gamma=0.1),
         }
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("LitSGN")
-        parser.add_argument("--lr", type=float, default=0.001)
-        parser.add_argument("--weight_decay", type=float, default=1e-4)
+
+    def on_fit_start(self) -> None:
+        from fvcore.nn import FlopCountAnalysis, flop_count_table
+
+        for batch in self.trainer.datamodule.train_dataloader():
+            break
+
+        x = batch[0].to(self.device)
+        x = x[:1]
+
+        flops = FlopCountAnalysis(self.sgn, x)
+        print(flop_count_table(flops))
