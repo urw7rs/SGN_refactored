@@ -6,13 +6,34 @@ metric:
 parameters:
   data.batch_size:
     values:
-    - 8
+    - 32
+    - 64
+    - 128
+    - 256
+    - 512
+  trainer.max_epochs:
+    values:
     - 16
     - 32
     - 64
     - 128
     - 256
     - 512
+  model.lr:
+    max: 0.01
+    min: 0.00001
+    distribution: uniform
+  model.weight_decay:
+    max: 0.01
+    min: 0.00000001
+    distribution: uniform
+  model.pct_start:
+    max: 0.5
+    min: 0.0
+    distribution: uniform
+early_terminate:
+  type: hyperband
+  min_iter: 10
 command:
   - ${env}
   - python

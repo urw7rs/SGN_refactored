@@ -3,8 +3,8 @@ import pytorch_lightning as pl
 from torch import nn
 import torch.nn.functional as F
 
-from torch.optim import Adam
-from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import OneCycleLR
 
 from torchmetrics import Accuracy
 
@@ -19,6 +19,8 @@ class LitSGN(pl.LightningModule):
         num_joints=25,
         num_features=3,
         lr=0.001,
+        pct_start=0.3,
+        anneal_strategy="cos",
         weight_decay=1e-4,
     ):
         super().__init__()
@@ -94,17 +96,24 @@ class LitSGN(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = Adam(
+        optimizer = AdamW(
             self.parameters(),
             lr=self.hparams.lr,
             weight_decay=self.hparams.weight_decay,
         )
-
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": MultiStepLR(optimizer, milestones=[60, 90, 110], gamma=0.1),
+        steps_per_epoch = len(self.trainer.datamodule.train_dataloader())
+        scheduler_dict = {
+            "scheduler": OneCycleLR(
+                optimizer,
+                max_lr=self.hparams.lr,
+                epochs=self.trainer.max_epochs,
+                steps_per_epoch=steps_per_epoch,
+                pct_start=self.hparams.pct_start,
+            ),
+            "interval": "step",
         }
 
+        return {"optimizer": optimizer, "lr_scheduler": scheduler_dict}
 
     def on_fit_start(self) -> None:
         from fvcore.nn import FlopCountAnalysis, flop_count_table
