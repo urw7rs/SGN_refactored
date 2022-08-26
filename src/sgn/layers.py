@@ -87,7 +87,7 @@ class JointLevelModule(nn.Module):
                 Rearrange("n v c -> n c v"),
                 nn.BatchNorm1d(out_channels),
                 Rearrange("n c v -> n v c"),
-                nn.ReLU(inplace=True),
+                nn.ReLU(),
             ],
         )
 
@@ -105,13 +105,13 @@ class FrameLevelModule(nn.Module):
         self.tcn1 = nn.Sequential(
             nn.Conv1d(256, 256, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm1d(256),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
         )
 
         self.tcn2 = nn.Sequential(
             nn.Conv1d(256, 512, kernel_size=1, bias=False),
             nn.BatchNorm1d(512),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
         )
 
     def forward(self, z):
@@ -146,7 +146,7 @@ class Embed(nn.Module):
         return nn.Sequential(
             nn.Linear(in_channels, out_channels),
             BatchNorm(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
         )
 
 
