@@ -118,8 +118,7 @@ class LitSGN(pl.LightningModule):
     def on_fit_start(self) -> None:
         from fvcore.nn import FlopCountAnalysis, flop_count_table
 
-        for batch in self.trainer.datamodule.train_dataloader():
-            break
+        batch = next(iter(self.trainer.datamodule.train_dataloader()))
 
         x = batch[0].to(self.device)
         x = x[:1]
