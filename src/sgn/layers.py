@@ -1,13 +1,13 @@
+from typing import List
+
+from einops import parse_shape, rearrange, reduce, repeat
+from einops.layers.torch import Rearrange
+
 import torch
 from torch import nn
 import torch.nn.functional as F
 
-from einops import rearrange, repeat, reduce, parse_shape
-from einops.layers.torch import Rearrange
-
 from torch_geometric.nn import Sequential
-
-from typing import List
 
 
 class DynamicsRepresentation(nn.Module):
@@ -28,16 +28,14 @@ class DynamicsRepresentation(nn.Module):
         shape = parse_shape(joint, "n t v _")
 
         joint = rearrange(joint, "n t v c -> (n t) (v c)")
-        velocity = rearrange(velocity, "n t v c -> (n t) (v c)")
-
         joint = self.batch_norm1(joint)
-        velocity = self.batch_norm2(velocity)
-
         joint = rearrange(joint, "(n t) (v c) -> n t v c", **shape)
-        velocity = rearrange(velocity, "(n t) (v c) -> n t v c", **shape)
-
-        vel_embedding = self.embed_vel(velocity)
         pos_embedding = self.embed_pos(joint)
+
+        velocity = rearrange(velocity, "n t v c -> (n t) (v c)")
+        velocity = self.batch_norm2(velocity)
+        velocity = rearrange(velocity, "(n t) (v c) -> n t v c", **shape)
+        vel_embedding = self.embed_vel(velocity)
 
         fused_embedding = pos_embedding + vel_embedding
 
@@ -54,7 +52,7 @@ class JointLevelModule(nn.Module):
 
         self.embed_joint = Embed([num_joints, 64, 64])
 
-        self.compute_adjacency_matrix = AdjacencyMatrix(num_joints, 128, 256)
+        self.compute_adjacency_matrix = AdjacencyMatrix(128, 256)
 
         self.gcn1 = self.build_gcn(128, 128)
         self.gcn2 = self.build_gcn(128, 256)
@@ -95,6 +93,7 @@ class JointLevelModule(nn.Module):
 class FrameLevelModule(nn.Module):
     def __init__(self, length):
         super().__init__()
+
         frame_indices = torch.arange(0, length)
         one_hot_frame = F.one_hot(frame_indices, num_classes=length).float()
         one_hot_frame = one_hot_frame.view(1, length, 1, length)
@@ -103,13 +102,13 @@ class FrameLevelModule(nn.Module):
         self.embed_frame = Embed([length, 64, 256])
 
         self.tcn1 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, padding=1, bias=False),
+            nn.Conv1d(256, 256, kernel_size=3, padding=1),
             nn.BatchNorm1d(256),
             nn.ReLU(inplace=True),
         )
 
         self.tcn2 = nn.Sequential(
-            nn.Conv1d(256, 512, kernel_size=1, bias=False),
+            nn.Conv1d(256, 512, kernel_size=1),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
         )
@@ -145,7 +144,6 @@ class Embed(nn.Module):
     def build_fc(self, in_channels, out_channels):
         return nn.Sequential(
             nn.Linear(in_channels, out_channels),
-            BatchNorm(out_channels),
             nn.ReLU(inplace=True),
         )
 
@@ -162,7 +160,7 @@ class BatchNorm(nn.Module):
 
 
 class AdjacencyMatrix(nn.Module):
-    def __init__(self, num_joints, in_features, out_features):
+    def __init__(self, in_features, out_features):
         super().__init__()
 
         self.theta = nn.Linear(in_features, out_features)
@@ -183,16 +181,16 @@ class AdjacencyMatrix(nn.Module):
 
 
 class ResidualGCN(nn.Module):
-    def __init__(self, in_channels, out_channels, improved=False, bias=False):
+    def __init__(self, in_channels, out_channels, improved=False, bias=True):
         super().__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.improved = improved
 
-        self.lin1 = nn.Linear(in_channels, out_channels, bias=False)
+        self.lin1 = nn.Linear(in_channels, out_channels)
 
-        self.lin2 = nn.Linear(in_channels, out_channels, bias=False)
+        self.lin2 = nn.Linear(in_channels, out_channels)
 
         if bias:
             self.bias = nn.Parameter(torch.Tensor(out_channels))
